@@ -24,7 +24,7 @@ import { startHandler } from "./handlers/start";
 import { tokenHandler } from "./handlers/token";
 import { profileHandler } from "./handlers/profile";
 import { generationHandler } from "./handlers/generation";
-// import { historyHandler } from "./handlers/history"; // Підключимо, коли відновимо історію
+import { historyHandler } from "./handlers/history";
 
 export const bot = new Bot<MyContext>(config.BOT_TOKEN);
 
@@ -44,11 +44,13 @@ bot.use(createConversation(editFocusConversation as any, "editFocusConversation"
 bot.use(createConversation(editBudgetConversation as any, "editBudgetConversation"));
 bot.use(createConversation(editAllergensConversation as any, "editAllergensConversation"));
 
+
 // 4. Підключення хендлерів з бізнес-логікою
 bot.use(startHandler);     // Обробляє /start
 bot.use(tokenHandler);     // Обробляє "Сільпо Токен" та /token
 bot.use(profileHandler);   // Обробляє "Мої параметри" та зміну даних
 bot.use(generationHandler);// Обробляє генерацію раціону
+bot.use(historyHandler);
 
 // 5. Запуск
 console.log("🚀 Бот запущений...");

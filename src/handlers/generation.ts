@@ -8,7 +8,7 @@ export const generationHandler = new Composer<MyContext>();
 // Зберігаємо ID користувачів, від яких чекаємо введення побажань
 const awaitingNote = new Set<number>();
 
-async function handleStreamError(ctx: MyContext, err: Error, loadingMsgId: number, telegram_id: string) {
+export async function handleStreamError(ctx: MyContext, err: Error, loadingMsgId: number, telegram_id: string) {
     console.error("❌ Stream error:", err.message);
     const errorStr = err.message;
 
@@ -24,7 +24,7 @@ async function handleStreamError(ctx: MyContext, err: Error, loadingMsgId: numbe
 }
 
 // Загальна функція для стрімінгу, щоб не дублювати код
-async function runStreaming(ctx: MyContext, loadingMsgId: number, user: any, params: any) {
+export async function runStreaming(ctx: MyContext, loadingMsgId: number, user: any, params: any) {
     let currentText = "";
     let lastEditTime = 0;
 
