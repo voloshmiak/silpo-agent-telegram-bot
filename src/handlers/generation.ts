@@ -5,6 +5,9 @@ import { getUser } from "../db";
 
 export const generationHandler = new Composer<MyContext>();
 
+// Зберігаємо ID користувачів, від яких чекаємо введення побажань
+const awaitingNote = new Set<number>();
+
 async function handleStreamError(ctx: MyContext, err: Error, loadingMsgId: number, telegram_id: string) {
     console.error("❌ Stream error:", err.message);
     const errorStr = err.message;
@@ -25,8 +28,8 @@ async function runStreaming(ctx: MyContext, loadingMsgId: number, user: any, par
     let currentText = "";
     let lastEditTime = 0;
 
-    // ДОДАЄМО apply: false, щоб не купувати одразу
-    const streamParams = { ...params, apply: false };
+    // ВМИКАЄМО apply: true, щоб бекенд одразу наповнював кошик
+    const streamParams = { ...params, apply: true };
 
     for await (const event of streamPlan(streamParams, user.jwt_token)) {
         const ev = event as any;
@@ -66,9 +69,8 @@ async function runStreaming(ctx: MyContext, loadingMsgId: number, user: any, par
                 }
 
                 if (cart.length > 0) {
-                    finalMessage += `🛒 *Список продуктів для кошика:*\n`;
+                    finalMessage += `🛒 *Список продуктів:*\n`;
                     cart.forEach((item: any) => {
-                        // Виводимо: • Банан — 2.5 кг (179.15 грн)
                         finalMessage += `• ${item.name} — ${item.quantity} ${item.unit} (*${item.total_price} грн*)\n`;
                     });
                 }
@@ -90,28 +92,50 @@ async function runStreaming(ctx: MyContext, loadingMsgId: number, user: any, par
                 await ctx.api.editMessageText(ctx.chat!.id, loadingMsgId, finalMessage, { parse_mode: "Markdown" });
             } catch (err) {
                 console.warn("⚠️ Помилка Markdown, відправляємо як звичайний текст...");
-                // Якщо в назвах продуктів попадуться спецсимволи, відправляємо без Markdown
                 await ctx.api.editMessageText(ctx.chat!.id, loadingMsgId, finalMessage.replace(/[*_`]/g, '')).catch(() => null);
             }
 
+            // Одразу відправляємо кнопку-посилання на кошик
             if (ev.plan) {
-                // Витягуємо ID плану (у твоєму JSON він лежить у ev.run_id)
-                const planId = ev.run_id || "latest";
-                const confirmKeyboard = new InlineKeyboard()
-                    .text("✅ Підтвердити та зібрати кошик", `apply_cart_${planId}`);
+                const cartKeyboard = new InlineKeyboard().url("🛒 Відкрити Сільпо", "https://silpo.ua");
 
                 await ctx.reply(
-                    "Ознайомтесь із списком покупок вище. Якщо все подобається, натисніть кнопку, щоб додати ці товари в кошик Сільпо.",
-                    { reply_markup: confirmKeyboard }
+                    "✅ *Всі товари вже додано до вашого кошика!*\nПерейдіть на сайт Сільпо, щоб перевірити та оплатити.",
+                    { parse_mode: "Markdown", reply_markup: cartKeyboard }
                 );
             }
         }
     }
 }
 
+// 1. КОРИСТУВАЧ ТИСНЕ КНОПКУ ГЕНЕРАЦІЇ
 generationHandler.hears("🥗 Згенерувати раціон", async (ctx) => {
     const user = getUser(ctx.from!.id);
     if (!user) return ctx.reply("Спочатку надішліть /start");
+
+    // Записуємо юзера в стан "очікує на введення тексту"
+    awaitingNote.add(ctx.from!.id);
+
+    const skipKeyboard = new InlineKeyboard().text("➡️ Пропустити", "skip_note");
+
+    await ctx.reply(
+        "✍️ *Чи є у вас особливі побажання на цей раз?*\n\nНаприклад: _«без курки», «більше риби», «хочу солодкого»_.\n\nНапишіть ваше побажання текстом прямо сюди, або натисніть кнопку нижче, щоб згенерувати стандартне меню.",
+        { parse_mode: "Markdown", reply_markup: skipKeyboard }
+    );
+});
+
+// 2. ЯКЩО КОРИСТУВАЧ НАТИСНУВ "ПРОПУСТИТИ"
+generationHandler.callbackQuery("skip_note", async (ctx) => {
+    const userId = ctx.from.id;
+
+    if (!awaitingNote.has(userId)) return ctx.answerCallbackQuery("Запит неактуальний.");
+
+    awaitingNote.delete(userId);
+    await ctx.answerCallbackQuery().catch(() => null);
+    await ctx.editMessageReplyMarkup({ reply_markup: undefined }).catch(() => null);
+
+    const user = getUser(userId);
+    if (!user) return;
 
     const loadingMsg = await ctx.reply("⏳ *SilpoFit* починає генерацію...", { parse_mode: "Markdown" });
     try {
@@ -121,6 +145,32 @@ generationHandler.hears("🥗 Згенерувати раціон", async (ctx) 
     }
 });
 
+// 3. ЯКЩО КОРИСТУВАЧ НАПИСАВ ТЕКСТ (ПОБАЖАННЯ)
+generationHandler.on("message:text", async (ctx, next) => {
+    const userId = ctx.from.id;
+    const text = ctx.message.text;
+
+    if (!awaitingNote.has(userId)) return next();
+
+    if (text.startsWith("/") || text === "🥗 Згенерувати раціон" || text === "👤 Профіль") {
+        awaitingNote.delete(userId);
+        return next();
+    }
+
+    awaitingNote.delete(userId);
+    const user = getUser(userId);
+    if (!user) return;
+
+    const loadingMsg = await ctx.reply(`📝 Враховую побажання: *${text}*\n⏳ Генерую раціон...`, { parse_mode: "Markdown" });
+
+    try {
+        await runStreaming(ctx, loadingMsg.message_id, user, { note: text });
+    } catch (error) {
+        await handleStreamError(ctx, error as Error, loadingMsg.message_id, user.telegram_id.toString());
+    }
+});
+
+// КОМАНДА ДЛЯ ХОЛОДИЛЬНИКА
 generationHandler.command("fridge", async (ctx) => {
     const user = getUser(ctx.from!.id);
     if (!user) return ctx.reply("Спочатку надішліть /start");
@@ -133,48 +183,5 @@ generationHandler.command("fridge", async (ctx) => {
         await runStreaming(ctx, loadingMsg.message_id, user, { fridge: fridgeItems });
     } catch (error) {
         await handleStreamError(ctx, error as Error, loadingMsg.message_id, user.telegram_id.toString());
-    }
-});
-
-// ОБРОБНИК КНОПКИ ПІДТВЕРДЖЕННЯ
-generationHandler.callbackQuery(/apply_cart_(.+)/, async (ctx) => {
-    // 1. ОДРАЗУ відповідаємо Телеграму, щоб уникнути таймауту і помилки 400!
-    await ctx.answerCallbackQuery().catch(() => null);
-
-    const planId = ctx.match[1];
-    const user = getUser(ctx.from.id);
-    if (!user) {
-        await ctx.reply("❌ Помилка авторизації");
-        return;
-    }
-
-    // 2. Прибираємо кнопку
-    await ctx.editMessageReplyMarkup({ reply_markup: undefined }).catch(() => null);
-    const loadingMsg = await ctx.reply("🛒 Зв'язуюсь із Сільпо та додаю продукти...");
-
-    try {
-        console.log(`📡 Відправляємо підтвердження для плану ${planId}...`);
-
-        // 3. ВИКЛИКАЄМО БЕКЕНД: передаємо ID плану і apply: true
-        const stream = streamPlan({ plan_id: planId, apply: true }, user.jwt_token);
-
-        for await (const event of stream) {
-            const ev = event as any;
-            if (ev.type === "error" || ev.error) {
-                throw new Error(String(ev.message || ev.error || ev.text));
-            }
-        }
-
-        const cartKeyboard = new InlineKeyboard().url("🛒 Відкрити Сільпо", "https://silpo.ua");
-
-        await ctx.api.editMessageText(
-            ctx.chat!.id,
-            loadingMsg.message_id,
-            "✅ *Готово! Продукти успішно додані до кошика.*\nПерейдіть на сайт Сільпо, щоб перевірити та оплатити.",
-            { parse_mode: "Markdown", reply_markup: cartKeyboard }
-        );
-    } catch (error) {
-        console.error("❌ Помилка додавання в кошик:", error);
-        await ctx.api.editMessageText(ctx.chat!.id, loadingMsg.message_id, "❌ Сталася помилка при додаванні товарів у кошик.");
     }
 });
