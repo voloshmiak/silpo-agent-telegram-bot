@@ -6,6 +6,30 @@ import { runStreaming, handleStreamError } from "./generation";
 
 export const historyHandler = new Composer<MyContext>();
 
+const dayNames: Record<string, string> = {
+    monday: "Понеділок", tuesday: "Вівторок", wednesday: "Середа",
+    thursday: "Четвер", friday: "П'ятниця", saturday: "Субота", sunday: "Неділя"
+};
+
+// Форматуємо меню страв
+function formatMenu(days: any[]): string {
+    if (!days || !Array.isArray(days) || days.length === 0) return "";
+
+    let text = "🍽️ *Ваше меню:*\n";
+    days.forEach(d => {
+        const dayName = dayNames[d.day] || d.day;
+        const workout = d.workout ? " 🏋️‍♂️" : "";
+        text += `\n🔹 *${dayName}*${workout}\n`;
+
+        if (d.breakfast) text += `🍳 Сніданок: ${d.breakfast.title}\n`;
+        if (d.lunch) text += `🍲 Обід: ${d.lunch.title}\n`;
+        if (d.snack) text += `🥪 Перекус: ${d.snack.title}\n`;
+        if (d.dinner) text += `🥗 Вечеря: ${d.dinner.title}\n`;
+    });
+
+    return text + "\n";
+}
+
 // Форматування дати: 2026-09-06T14:20:21Z -> 06.09.2026, 14:20
 function formatDate(dateString: string): string {
     const d = new Date(dateString);
@@ -88,6 +112,7 @@ historyHandler.callbackQuery(/view_plan_(.+)/, async (ctx) => {
         const planData = parsedContent.plan_data || parsedContent;
         const summary = planData.summary || {};
         const targets = planData.targets;
+        const days = planData.days || [];
         // Шукаємо кошик в cart або cart_items
         const cart = planData.cart || planData.cart_items || [];
 
@@ -100,6 +125,11 @@ historyHandler.callbackQuery(/view_plan_(.+)/, async (ctx) => {
 
         if (summary.notes) {
             finalMessage += `📝 *Коротко:* ${summary.notes}\n\n`;
+        }
+
+        // ❗️ ВИВОДИМО МЕНЮ
+        if (days.length > 0) {
+            finalMessage += formatMenu(days);
         }
 
         if (cart.length > 0) {
@@ -120,7 +150,6 @@ historyHandler.callbackQuery(/view_plan_(.+)/, async (ctx) => {
         }
 
         // Кнопка для застосування цього плану
-        // Оновлена клавіатура: посилання на Сільпо + кнопка відновлення
         const applyKeyboard = new InlineKeyboard()
             .url("🛒 Відкрити Сільпо", "https://silpo.ua").row()
             .text("🔄 Зібрати кошик знову", `rebuild_cart:${planId}`);

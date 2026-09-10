@@ -8,6 +8,31 @@ export const generationHandler = new Composer<MyContext>();
 // Зберігаємо ID користувачів, від яких чекаємо введення побажань
 const awaitingNote = new Set<number>();
 
+const dayNames: Record<string, string> = {
+    monday: "Понеділок", tuesday: "Вівторок", wednesday: "Середа",
+    thursday: "Четвер", friday: "П'ятниця", saturday: "Субота", sunday: "Неділя"
+};
+
+// Форматуємо меню страв
+function formatMenu(days: any[]): string {
+    if (!days || !Array.isArray(days) || days.length === 0) return "";
+
+    let text = "🍽️ *Ваше меню:*\n";
+    days.forEach(d => {
+        const dayName = dayNames[d.day] || d.day;
+        const workout = d.workout ? " 🏋️‍♂️" : "";
+        text += `\n🔹 *${dayName}*${workout}\n`;
+
+        if (d.breakfast) text += `🍳 Сніданок: ${d.breakfast.title}\n`;
+        if (d.lunch) text += `🍲 Обід: ${d.lunch.title}\n`;
+        if (d.snack) text += `🥪 Перекус: ${d.snack.title}\n`;
+        if (d.dinner) text += `🥗 Вечеря: ${d.dinner.title}\n`;
+    });
+
+    return text + "\n";
+}
+
+// Обробник помилок стрімінгу
 export async function handleStreamError(ctx: MyContext, err: Error, loadingMsgId: number, telegram_id: string) {
     console.error("❌ Stream error:", err.message);
     const errorStr = err.message;
@@ -57,6 +82,7 @@ export async function runStreaming(ctx: MyContext, loadingMsgId: number, user: a
                 const summary = ev.plan.summary;
                 const targets = ev.plan.targets;
                 const cart = ev.plan.cart || [];
+                const days = ev.plan.days || []; // ❗️ Правильне джерело масиву днів
 
                 finalMessage = `✅ *Раціон успішно згенеровано!*\n\n`;
 
@@ -66,6 +92,11 @@ export async function runStreaming(ctx: MyContext, loadingMsgId: number, user: a
 
                 if (summary?.notes) {
                     finalMessage += `📝 *Коротко:* ${summary.notes}\n\n`;
+                }
+
+                // ❗️ Додаємо генерацію меню з правильної змінної
+                if (days.length > 0) {
+                    finalMessage += formatMenu(days);
                 }
 
                 if (cart.length > 0) {
@@ -83,7 +114,7 @@ export async function runStreaming(ctx: MyContext, loadingMsgId: number, user: a
                 }
             }
 
-            // 🛡 ЗАХИСТ ВІД ПОМИЛКИ 400
+            // 🛡 ЗАХИСТ ВІД ПОМИЛКИ порожнього тексту
             if (!finalMessage || finalMessage.trim() === "") {
                 finalMessage = "✅ Раціон успішно згенеровано!\n_(AI-агент зберіг план, але не надіслав текстового опису)_";
             }
