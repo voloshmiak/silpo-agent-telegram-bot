@@ -150,13 +150,25 @@ generationHandler.on("message:text", async (ctx, next) => {
     const userId = ctx.from.id;
     const text = ctx.message.text;
 
+    // Якщо ми не чекаємо побажання від цього юзера — пропускаємо повідомлення далі
     if (!awaitingNote.has(userId)) return next();
 
-    if (text.startsWith("/") || text === "🥗 Згенерувати раціон" || text === "👤 Профіль") {
-        awaitingNote.delete(userId);
-        return next();
+    // Перелік усіх кнопок нашого головного меню
+    const menuButtons = [
+        "🥗 Згенерувати раціон",
+        "⚙️ Мої параметри",
+        "🛒 Сільпо Токен",
+        "🏋️‍♂️ Пропустив тренування",
+        "📜 Історія"
+    ];
+
+    // Якщо це системна команда або користувач передумав і натиснув кнопку меню
+    if (text.startsWith("/") || menuButtons.includes(text)) {
+        awaitingNote.delete(userId); // Скасовуємо режим очікування
+        return next(); // Передаємо повідомлення далі (щоб відкрився профіль чи історія)
     }
 
+    // Все супер, це реальне побажання! Забираємо юзера зі списку очікування
     awaitingNote.delete(userId);
     const user = getUser(userId);
     if (!user) return;

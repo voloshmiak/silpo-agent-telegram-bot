@@ -88,30 +88,6 @@ export class ApiClient {
         );
     }
 
-    // 4. Авторизація Сільпо (SMS Flow)
-    // TODO: Перевір у бекендера, чи правильні URL-шляхи ("/silpo-auth/request-sms" тощо)
-    async requestSms(phone: string, token: string): Promise<{ status: string }> {
-        return this.request<{ status: string }>(
-            "/users/me/silpo-token",
-            {
-                method: "POST",
-                body: JSON.stringify({ phone }),
-            },
-            token
-        );
-    }
-
-    async verifySms(phone: string, code: string, token: string): Promise<{ access_token: string }> {
-        return this.request<{ access_token: string }>(
-            "/silpo-auth/verify-sms",
-            {
-                method: "POST",
-                body: JSON.stringify({ phone, code }),
-            },
-            token
-        );
-    }
-
     // 5. Історія планів
     async getPlans(
         token: string,
@@ -127,6 +103,18 @@ export class ApiClient {
 
     async getPlanById(id: string, token: string): Promise<PlanHistoryItem> {
         return this.request<PlanHistoryItem>(`/plans/${id}`, { method: "GET" }, token);
+    }
+
+    // 6. Фідбек (Зворотний зв'язок щодо раціону)
+    async sendFeedback(planId: string, feedbackText: string, tags: string[], token: string): Promise<any> {
+        return this.request<any>(
+            "/plans/feedback", // Запитай у бекендера точний URL
+            {
+                method: "POST",
+                body: JSON.stringify({ plan_id: planId, text: feedbackText, tags }),
+            },
+            token
+        );
     }
 }
 

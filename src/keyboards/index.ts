@@ -1,20 +1,22 @@
 import { Keyboard, InlineKeyboard } from "grammy";
 
-// Главное меню
+// Головне меню
 export const mainMenuKeyboard = new Keyboard()
     .text("🥗 Згенерувати раціон")
     .text("⚙️ Мої параметри")
     .row()
     .text("🛒 Сільпо Токен")
     .text("🏋️‍♂️ Пропустив тренування")
+    .row() // <--- Додаємо новий рядок
+    .text("📜 Історія") // <--- Повертаємо нашу кнопку!
     .resized();
 
-// Inline-кнопки для онбординга (выбор пола)
+// Inline-кнопки для онбординга (вибір статі)
 export const sexKeyboard = new InlineKeyboard()
     .text("Чоловіча 👨", "sex:чол.")
     .text("Жіноча 👩", "sex:жін.");
 
-// Inline-кнопки для цели
+// Inline-кнопки для цілі
 export const focusKeyboard = new InlineKeyboard()
     .text("Схуднення 📉", "focus:Схуднення")
     .row()

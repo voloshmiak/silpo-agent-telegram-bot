@@ -68,3 +68,10 @@ export interface PlanHistoryItem {
     created_at: string;
     data: Record<string, unknown>;
 }
+
+// 6. Фідбек
+export interface FeedbackPayload {
+    plan_id: string;
+    text: string;
+    tags: string[]; // наприклад: ["дорого", "багато часу на готування"]
+}
