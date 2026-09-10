@@ -25,6 +25,7 @@ import { tokenHandler } from "./handlers/token";
 import { profileHandler } from "./handlers/profile";
 import { generationHandler } from "./handlers/generation";
 import { historyHandler } from "./handlers/history";
+import { feedbackConversation } from "./scenes/feedback";
 
 export const bot = new Bot<MyContext>(config.BOT_TOKEN);
 
@@ -43,6 +44,7 @@ bot.use(createConversation(editWeightConversation as any, "editWeightConversatio
 bot.use(createConversation(editFocusConversation as any, "editFocusConversation"));
 bot.use(createConversation(editBudgetConversation as any, "editBudgetConversation"));
 bot.use(createConversation(editAllergensConversation as any, "editAllergensConversation"));
+bot.use(createConversation(feedbackConversation as any, "feedbackConversation"));
 
 
 // 4. Підключення хендлерів з бізнес-логікою
@@ -51,6 +53,7 @@ bot.use(tokenHandler);     // Обробляє "Сільпо Токен" та /t
 bot.use(profileHandler);   // Обробляє "Мої параметри" та зміну даних
 bot.use(generationHandler);// Обробляє генерацію раціону
 bot.use(historyHandler);
+
 
 bot.api.setMyCommands([
     { command: "token", description: "Встановити або оновити токен Сільпо" }

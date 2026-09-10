@@ -152,7 +152,8 @@ historyHandler.callbackQuery(/view_plan_(.+)/, async (ctx) => {
         // Кнопка для застосування цього плану
         const applyKeyboard = new InlineKeyboard()
             .url("🛒 Відкрити Сільпо", "https://silpo.ua").row()
-            .text("🔄 Зібрати кошик знову", `rebuild_cart:${planId}`);
+            .text("🔄 Зібрати кошик знову", `rebuild_cart:${planId}`)
+            .text("📝 Оцінити цей тиждень", `feedback_plan:${planId}`);
 
         await ctx.api.editMessageText(
             ctx.chat!.id,
@@ -187,4 +188,12 @@ historyHandler.callbackQuery(/^rebuild_cart:(.+)$/, async (ctx) => {
     } catch (error) {
         await handleStreamError(ctx, error as Error, loadingMsg.message_id, user.telegram_id.toString());
     }
+});
+
+// Обробник для кнопки "Оцінити цей тиждень"
+historyHandler.callbackQuery(/^feedback_plan:(.+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => null);
+
+    // Просто запускаємо сцену. ID плану автоматично передасться через ctx.match!
+    await ctx.conversation.enter("feedbackConversation");
 });
