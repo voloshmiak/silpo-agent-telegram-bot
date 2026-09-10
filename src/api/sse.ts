@@ -12,6 +12,9 @@ export async function* streamPlan(
     if (params.fridge) query.append("fridge", params.fridge);
     if (params.plan_id) query.append("plan_id", params.plan_id);
 
+    // ДОДАЄМО ПАРАМЕТР APPLY (якщо він переданий)
+    if (params.apply !== undefined) query.append("apply", params.apply.toString());
+
     const url = `${config.API_BASE_URL}/plan/stream?${query.toString()}`;
     const response = await fetch(url, {
         method: "GET",
@@ -46,7 +49,7 @@ export async function* streamPlan(
                     const parsed = JSON.parse(jsonStr) as SSEEvent;
                     yield parsed;
                 } catch {
-                    // Игнорируем неполные чанки или комментарии
+                    // Ігноруємо неповні чанки
                 }
             }
         }

@@ -58,6 +58,7 @@ export interface PlanStreamParams {
     note?: string;
     fridge?: string;
     plan_id?: string;
+    apply?: boolean; // Додай цей рядок, якщо його там немає!
 }
 
 // 5. Історія планів
