@@ -212,19 +212,3 @@ generationHandler.on("message:text", async (ctx, next) => {
         await handleStreamError(ctx, error as Error, loadingMsg.message_id, user.telegram_id.toString());
     }
 });
-
-// КОМАНДА ДЛЯ ХОЛОДИЛЬНИКА
-generationHandler.command("fridge", async (ctx) => {
-    const user = getUser(ctx.from!.id);
-    if (!user) return ctx.reply("Спочатку надішліть /start");
-
-    const fridgeItems = ctx.match?.trim();
-    if (!fridgeItems) return ctx.reply("ℹ️ Вкажіть продукти. Формат: `/fridge яйця, помідори`", { parse_mode: "Markdown" });
-
-    const loadingMsg = await ctx.reply(`🥚 Враховую: *${fridgeItems}*\n⏳ Генерую...`, { parse_mode: "Markdown" });
-    try {
-        await runStreaming(ctx, loadingMsg.message_id, user, { fridge: fridgeItems });
-    } catch (error) {
-        await handleStreamError(ctx, error as Error, loadingMsg.message_id, user.telegram_id.toString());
-    }
-});

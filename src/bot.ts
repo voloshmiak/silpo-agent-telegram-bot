@@ -52,6 +52,10 @@ bot.use(profileHandler);   // Обробляє "Мої параметри" та 
 bot.use(generationHandler);// Обробляє генерацію раціону
 bot.use(historyHandler);
 
+bot.api.setMyCommands([
+    { command: "token", description: "Встановити або оновити токен Сільпо" }
+]).catch((err) => console.error("Помилка встановлення команд:", err));
+
 // 5. Запуск
 console.log("🚀 Бот запущений...");
 bot.start();
