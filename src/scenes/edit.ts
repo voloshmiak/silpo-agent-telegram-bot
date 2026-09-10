@@ -34,8 +34,13 @@ export async function editWeightConversation(cv: MyConversation, ctx: MyContext)
 // 2. Редагування цілі
 export async function editFocusConversation(cv: MyConversation, ctx: MyContext) {
     await ctx.reply("🎯 Оберіть нову ціль:", { reply_markup: focusKeyboard });
-    const focusCtx = await cv.waitForCallbackQuery(/^focus:/);
-    const focus = focusCtx.match[0].split(":")[1];
+
+    // ❗️ Змінили регулярку: тепер вона ловить все після "focus:"
+    const focusCtx = await cv.waitForCallbackQuery(/^focus:(.+)$/);
+
+    // ❗️ Беремо одразу 1-шу групу збігу (те, що в дужках)
+    const focus = focusCtx.match[1];
+
     await focusCtx.answerCallbackQuery();
 
     let weekly_pace = 0;

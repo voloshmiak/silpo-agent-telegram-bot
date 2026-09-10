@@ -21,9 +21,9 @@ export async function onboardingConversation(
     }
 
     // 1. Ціль
-    await ctx.reply("Крок 1/8: Оберіть головний фокус (ціль):", { reply_markup: focusKeyboard });
-    const focusCtx = await conversation.waitForCallbackQuery(/^focus:/);
-    const focus = focusCtx.match[0].split(":")[1];
+    await ctx.reply("Крок 1/10: Оберіть головний фокус (ціль):", { reply_markup: focusKeyboard });
+    const focusCtx = await conversation.waitForCallbackQuery(/^focus:(.+)$/); // ❗️ Змінили
+    const focus = focusCtx.match[1]; // ❗️ Змінили
     await focusCtx.answerCallbackQuery();
     await focusCtx.editMessageText(`Ціль: ${focus}`);
 
@@ -40,9 +40,9 @@ export async function onboardingConversation(
     );
 
     // 4. Стать
-    await ctx.reply("Крок 4/8: Оберіть вашу стать:", { reply_markup: sexKeyboard });
-    const sexCtx = await conversation.waitForCallbackQuery(/^sex:/);
-    const sex = sexCtx.match[0].split(":")[1];
+    await ctx.reply("Крок 4/10: Оберіть вашу стать:", { reply_markup: sexKeyboard });
+    const sexCtx = await conversation.waitForCallbackQuery(/^sex:(.+)$/); // ❗️ Змінили
+    const sex = sexCtx.match[1]; // ❗️ Змінили
     await sexCtx.answerCallbackQuery();
     await sexCtx.editMessageText(`Стать: ${sex}`);
 

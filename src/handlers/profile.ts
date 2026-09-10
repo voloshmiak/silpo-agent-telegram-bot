@@ -11,6 +11,7 @@ profileHandler.hears("⚙️ Мої параметри", async (ctx) => {
 
     try {
         const s = await api.getSettings(user.jwt_token);
+        console.log("ВІДПОВІДЬ БЕКЕНДА:", s);
         const msg =
             `⚙️ *Ваші збережені параметри:*\n\n` +
             `👤 Стать / Вік: ${s.sex}, ${s.age} р.\n` +
